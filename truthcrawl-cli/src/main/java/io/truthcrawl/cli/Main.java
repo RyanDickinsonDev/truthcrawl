@@ -51,6 +51,23 @@ public final class Main {
             case "import-batch" -> ImportBatchCommand.run(rest);
             case "verify-pipeline" -> VerifyPipelineCommand.run(rest);
             case "verification-status" -> VerificationStatusCommand.run(rest);
+            case "timestamp" -> TimestampCommand.run(rest);
+            case "verify-timestamp" -> VerifyTimestampCommand.run(rest);
+            case "timestamp-batch" -> TimestampBatchCommand.run(rest);
+            case "archive-content" -> ArchiveContentCommand.run(rest);
+            case "retrieve-content" -> RetrieveContentCommand.run(rest);
+            case "archive-stats" -> ArchiveStatsCommand.run(rest);
+            case "start-server" -> StartServerCommand.run(rest);
+            case "register-peer" -> RegisterPeerCommand.run(rest);
+            case "list-peers" -> ListPeersCommand.run(rest);
+            case "gen-key" -> GenKeyCommand.run(rest);
+            case "register-node" -> RegisterNodeCommand.run(rest);
+            case "attest-capabilities" -> AttestCapabilitiesCommand.run(rest);
+            case "node-profile" -> NodeProfileCommand.run(rest);
+            case "verify-node" -> VerifyNodeCommand.run(rest);
+            case "crawl" -> CrawlCommand.run(rest);
+            case "sync" -> SyncCommand.run(rest);
+            case "node" -> NodeCommand.run(rest);
             default -> {
                 System.err.println("Unknown command: " + command);
                 printCommands();
@@ -62,6 +79,6 @@ public final class Main {
     }
 
     private static void printCommands() {
-        System.err.println("Commands: build-root, verify-proof, publish-batch, verify-batch, observe, verify-record, compare-records, file-dispute, resolve-dispute, node-reputation, publish-chain-batch, verify-chain, sample-observations, audit-report, store-record, query-url, query-node, chain-stats, export-batch, import-batch, verify-pipeline, verification-status");
+        System.err.println("Commands: build-root, verify-proof, publish-batch, verify-batch, observe, verify-record, compare-records, file-dispute, resolve-dispute, node-reputation, publish-chain-batch, verify-chain, sample-observations, audit-report, store-record, query-url, query-node, chain-stats, export-batch, import-batch, verify-pipeline, verification-status, timestamp, verify-timestamp, timestamp-batch, archive-content, retrieve-content, archive-stats, start-server, register-peer, list-peers, gen-key, register-node, attest-capabilities, node-profile, verify-node");
     }
 }

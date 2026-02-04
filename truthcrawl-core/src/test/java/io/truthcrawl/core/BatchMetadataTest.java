@@ -64,7 +64,7 @@ class BatchMetadataTest {
     @Test
     void throws_on_invalid_batch_id() {
         assertThrows(IllegalArgumentException.class,
-                () -> new BatchMetadata("not-a-date", MERKLE_ROOT, MANIFEST_HASH, 3));
+                () -> new BatchMetadata("-invalid", MERKLE_ROOT, MANIFEST_HASH, 3));
     }
 
     @Test

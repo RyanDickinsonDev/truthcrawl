@@ -1,117 +1,140 @@
 ## Current Objective (Lock This In)
 
 The Merkle tree core, M1 (Transparency Log MVP), M2 (Verification Sampling MVP),
-M3 (Dispute System), M4 (Audit Pipeline & Batch Chain), and M5 (Record Store & Query)
-milestones are complete.
+M3 (Dispute System), M4 (Audit Pipeline & Batch Chain), M5 (Record Store & Query),
+M6 (Cross-Node Verification Pipeline), M7 (Trusted Timestamping),
+M8 (Content Archival), and M9 (Network Layer) milestones are complete.
 
-The next implementation milestone is **M6: Cross-Node Verification Pipeline**.
+The next implementation milestone is **M10: Node Identity & Attestation**.
 
-This milestone enables multi-party verification without requiring a network layer.
-Batch packages can be exported, exchanged via any transport, imported into a local
-store, and verified through an automated pipeline that samples, compares, and reports.
+This milestone binds cryptographic node identities to real-world operators and
+lets nodes declare their crawl capabilities. A node registration is a self-signed
+document that binds an operator name, organization, and contact email to a node's
+Ed25519 key pair. A crawl attestation is a signed declaration of which domains
+the node crawls. Both are independently verifiable using only the node's public key.
 
-Nothing outside this scope is allowed to proceed until M6 passes.
-
----
-
-## M6 Scope (Strict)
-
-M6 is complete when the system supports:
-
-- batch export: package a published batch (metadata, manifest, chain link, signature, records) into a self-contained directory
-- batch import: unpack a batch package into the local record store, validating integrity on import
-- verification pipeline: orchestrate sample → compare → report → dispute for an imported batch
-- verification status: track which batches/records have been verified and their outcomes
-
-Out of scope for M6:
-- network protocols or HTTP APIs
-- peer discovery or DHT
-- real-time streaming or push notifications
-- distributed consensus beyond existing dispute resolution
-- UI dashboards
+Nothing outside this scope is allowed to proceed until M10 passes.
 
 ---
 
-## Implementation Order (M6)
+## M10 Scope (Strict)
 
-1. Implement BatchExporter (packages a published batch into an exportable directory)
-2. Implement BatchImporter (imports a batch package, validates, stores records)
-3. Implement VerificationPipeline (orchestrates: sample → re-observe → compare → report → dispute)
-4. Implement VerificationStatus (tracks per-batch and per-record verification outcomes)
-5. CLI commands: export-batch, import-batch, verify-pipeline, verification-status
-6. Unit tests for export, import, pipeline, and status tracking
-7. Integration tests for end-to-end cross-node verification
+M10 is complete when the system supports:
+
+- operator identity: an immutable record of a node operator (name, organization, contact email)
+- node registration: a self-signed binding of operator identity to a node's key pair
+- crawl attestation: a signed declaration of domains the node crawls
+- node profile: the combination of registration + attestation for a node
+- node profile store: persistent storage and lookup of profiles by node ID
+- node profile verification: independent verification of registration and attestation signatures
+
+Out of scope for M10:
+- external identity providers (OAuth, OIDC, X.509 certificates)
+- identity revocation or expiry
+- capability enforcement (attestations are claims, not permissions)
+- reputation scoring based on identity (M3 already handles reputation)
+- modifying existing ObservationRecord, ChainLink, or PeerInfo classes
+
+---
+
+## Implementation Order (M10)
+
+1. Implement NodeRegistration (self-signed binding: operator identity + node key + timestamp)
+2. Implement CrawlAttestation (signed declaration: node ID + list of domains + timestamp)
+3. Implement NodeProfile (registration + attestation combined)
+4. Implement NodeProfileStore (persistent file-based profile store)
+5. Implement NodeProfileVerifier (verifies registration and attestation signatures)
+6. CLI commands: register-node, attest-capabilities, node-profile, verify-node
+7. Unit tests for registration, attestation, profile, store, and verifier
+8. Integration tests for end-to-end identity workflow
 
 Skipping steps is not allowed.
 
 ---
 
-## Batch Export Rules (Locked)
+## NodeRegistration Rules (Locked)
 
-- An exported batch is a self-contained directory with a fixed layout:
+- A node registration binds an operator identity to a node's Ed25519 key pair
+- The registration is self-signed: the node signs its own registration
+- Canonical text format:
   ```
-  batch-{batchId}/
-    metadata.txt        (BatchMetadata canonical text)
-    manifest.txt        (BatchManifest canonical text)
-    chain-link.txt      (ChainLink canonical text)
-    signature.txt       (Base64 publisher signature)
-    records/
-      {hash}.txt        (ObservationRecord full text, one per manifest entry)
+  operator_name:{name}
+  organization:{org}
+  contact_email:{email}
+  node_id:{64-char hex}
+  public_key:{Base64}
+  registered_at:{ISO-8601 UTC}
+  registration_signature:{Base64 Ed25519 signature}
   ```
-- All manifest entries must have their records present in the export
-- The directory is self-verifiable: given the publisher's public key, the entire batch
-  can be verified from the export alone (no external data needed)
-- Exporting a batch is deterministic: same inputs always produce byte-identical files
+- The signing input is a versioned, deterministic byte sequence:
+  ```
+  truthcrawl-registration-v1\n
+  operator_name\n
+  organization\n
+  contact_email\n
+  node_id\n
+  registered_at\n
+  ```
+- The node signs the signing input (NOT the canonical text, which includes the signature)
+- operator_name and organization must be non-empty
+- contact_email must be non-empty
+- Registrations are immutable once signed
 
 ---
 
-## Batch Import Rules (Locked)
+## CrawlAttestation Rules (Locked)
 
-- Import reads an export directory, validates integrity, and stores records
-- Validation on import: signature valid, manifest_hash matches, merkle_root matches,
-  record_count matches, all records present and parseable, record hashes match manifest
-- Records are stored in the local RecordStore (idempotent — re-importing is safe)
-- Import produces a receipt: batch_id, records_imported, records_already_present, valid (boolean)
-- Import never modifies existing records in the store (append-only invariant preserved)
+- A crawl attestation is a signed declaration of which domains a node crawls
+- The attestation is self-signed by the same node key as the registration
+- Canonical text format:
+  ```
+  node_id:{64-char hex}
+  attested_at:{ISO-8601 UTC}
+  domain:{domain1}
+  domain:{domain2}
+  ...
+  attestation_signature:{Base64 Ed25519 signature}
+  ```
+- The signing input is a versioned, deterministic byte sequence:
+  ```
+  truthcrawl-attestation-v1\n
+  node_id\n
+  attested_at\n
+  domain1\n
+  domain2\n
+  ...
+  ```
+- Domains are sorted alphabetically in the canonical text and signing input
+- At least one domain is required
+- Domains are lowercase, no protocol prefix (e.g. "example.com" not "https://example.com")
+- Attestations are immutable once signed
 
 ---
 
-## Verification Pipeline Rules (Locked)
+## NodeProfile Rules (Locked)
 
-- The pipeline operates on an imported batch using local independent observations
-- Steps (in order):
-  1. Sample records from the batch manifest (using VerificationSampler)
-  2. For each sampled record, look up independent observations of the same URL
-     from the local record store (different node_id required)
-  3. Compare sampled records against independent observations (using RecordComparator)
-  4. Generate an AuditReport summarizing matches/mismatches
-  5. For each mismatch, optionally file a dispute (using DisputeRecord)
-- The pipeline requires a minimum number of independent observations per URL
-  (configurable, default 1) to proceed with comparison
-- Records with no independent observations are marked as "unverifiable" in the report
-- Pipeline output: AuditReport + list of filed disputes + per-record verification detail
+- A node profile combines a registration and an optional crawl attestation
+- The profile is stored as a single file: `profiles/{node-id}.txt`
+- File format: registration canonical text, then a blank line, then attestation canonical text
+- If no attestation exists, the file contains only the registration
+- The registration and attestation must have the same node_id
+- Profiles can be looked up by node ID (exact match)
+- Listing profiles returns a sorted list of node IDs
 
 ---
 
-## Verification Status Rules (Locked)
+## NodeProfileVerifier Rules (Locked)
 
-- Tracks the outcome of verification for each batch and each record
-- Batch status: PENDING, VERIFIED_CLEAN, VERIFIED_WITH_DISPUTES, UNVERIFIABLE
-- Record status: NOT_CHECKED, MATCHED, MISMATCHED, UNVERIFIABLE (no independent data)
-- Status is stored as canonical text in a file: `verification/{batch-id}.txt`
-- Status layout:
-  ```
-  batch_id:{id}
-  batch_status:{status}
-  records_total:{n}
-  records_checked:{n}
-  records_matched:{n}
-  records_mismatched:{n}
-  records_unverifiable:{n}
-  checked_at:{ISO-8601}
-  ```
-- Status is deterministic: same verification run on same data produces same status
-- Status files are append-only within the verification directory
+- Verification checks for registration:
+  1. Registration is parseable and has all required fields
+  2. node_id matches SHA-256 fingerprint of the provided public key
+  3. registration_signature is valid over the signing input
+- Verification checks for attestation (if present):
+  1. Attestation is parseable and has all required fields
+  2. node_id matches the registration's node_id
+  3. attestation_signature is valid over the signing input using the same public key
+- Verification requires only the profile text (the public key is embedded in the registration)
+- Verification is deterministic: same profile always produces the same result
 
 ---
 
@@ -123,17 +146,23 @@ Skipping steps is not allowed.
 - Encoding: UTF-8
 - Serialization: explicit text format, deterministic field order
 - node_id: SHA-256 fingerprint of the node's Ed25519 public key (lowercase hex)
+- tsa_key_id: SHA-256 fingerprint of the TSA's Ed25519 public key (lowercase hex)
+- content hash: SHA-256 of raw payload bytes (lowercase hex)
+- request body hash: SHA-256 of raw request body bytes (lowercase hex)
 
 ---
 
 ## Build Stop Conditions (Extended)
 
 Work must stop immediately if:
-- exported batch is not self-verifiable from the export directory alone
-- import modifies or overwrites existing records in the store
-- pipeline produces different results for the same batch and same local data
-- verification status differs for the same verification run
-- re-importing the same batch changes any stored data
+- a node registration can be created without a valid Ed25519 signature
+- a registration can be verified against a different key than the one embedded in it
+- node_id in a registration does not match the SHA-256 fingerprint of the embedded public key
+- a crawl attestation can be signed by a different key than the registration
+- the signing input includes the signature itself (circular dependency)
+- verification requires anything beyond the profile text itself
+- an attestation's node_id differs from its registration's node_id
 
-Every claim, including verification status and pipeline results, must be independently
-verifiable by an untrusted third party.
+Every identity claim must be independently verifiable by an untrusted third party
+using only the profile document itself. The public key is embedded in the
+registration, and all signatures are verifiable against it.

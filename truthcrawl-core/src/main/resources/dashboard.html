@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>truthcrawl</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e0e0e0; padding: 24px; max-width: 960px; margin: 0 auto; }
+h1 { font-size: 20px; color: #fff; margin-bottom: 4px; }
+h1 span { color: #666; font-weight: 400; }
+.subtitle { color: #666; font-size: 13px; margin-bottom: 32px; }
+.section { margin-bottom: 32px; }
+.section-title { font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 12px; }
+.card { background: #141414; border: 1px solid #222; border-radius: 8px; padding: 16px; margin-bottom: 8px; }
+.field { display: flex; gap: 8px; margin-bottom: 6px; font-size: 13px; }
+.field:last-child { margin-bottom: 0; }
+.label { color: #666; min-width: 100px; flex-shrink: 0; }
+.value { color: #ccc; word-break: break-all; font-family: 'SF Mono', Monaco, monospace; font-size: 12px; }
+.hash { color: #7eb8da; cursor: pointer; text-decoration: none; }
+.hash:hover { text-decoration: underline; }
+.batch { cursor: pointer; transition: border-color 0.15s; }
+.batch:hover { border-color: #444; }
+.batch .batch-id { font-size: 15px; color: #fff; }
+.batch .batch-meta { font-size: 12px; color: #666; margin-top: 4px; }
+.empty { color: #444; font-size: 13px; font-style: italic; padding: 12px 0; }
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 100; }
+.modal-overlay.active { display: flex; align-items: center; justify-content: center; }
+.modal { background: #141414; border: 1px solid #333; border-radius: 12px; padding: 24px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; }
+.modal-title { font-size: 14px; color: #888; margin-bottom: 12px; }
+.modal pre { font-size: 12px; color: #ccc; font-family: 'SF Mono', Monaco, monospace; white-space: pre-wrap; word-break: break-all; line-height: 1.6; }
+.modal-close { background: #222; border: 1px solid #333; color: #ccc; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-top: 16px; }
+.modal-close:hover { background: #2a2a2a; }
+.lookup { display: flex; gap: 8px; margin-bottom: 16px; }
+.lookup input { flex: 1; background: #141414; border: 1px solid #222; border-radius: 6px; padding: 10px 12px; color: #ccc; font-family: 'SF Mono', Monaco, monospace; font-size: 12px; outline: none; }
+.lookup input:focus { border-color: #444; }
+.lookup button { background: #1a1a2e; border: 1px solid #333; color: #7eb8da; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+.lookup button:hover { background: #222240; }
+.peers-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.peer-chip { background: #1a1a1a; border: 1px solid #222; border-radius: 4px; padding: 4px 8px; font-family: 'SF Mono', Monaco, monospace; font-size: 11px; color: #888; }
+.status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #2ecc71; margin-right: 6px; }
+</style>
+</head>
+<body>
+
+<h1><span class="status-dot"></span>truthcrawl <span>node</span></h1>
+<p class="subtitle">verifiable crawl transparency log</p>
+
+<div class="section">
+  <div class="section-title">Node Identity</div>
+  <div class="card">
+    <div class="field"><span class="label">node_id</span><span class="value" id="node-id">loading...</span></div>
+    <div class="field"><span class="label">public_key</span><span class="value" id="pub-key">loading...</span></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Peers</div>
+  <div id="peers-container"><p class="empty">loading...</p></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Record Lookup</div>
+  <div class="lookup">
+    <input type="text" id="record-input" placeholder="paste a 64-char record hash...">
+    <button onclick="lookupRecord()">Fetch</button>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Batches</div>
+  <div id="batches-container"><p class="empty">loading...</p></div>
+</div>
+
+<div class="modal-overlay" id="modal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title" id="modal-title"></div>
+    <pre id="modal-content"></pre>
+    <button class="modal-close" onclick="document.getElementById('modal').classList.remove('active')">Close</button>
+  </div>
+</div>
+
+<script>
+const API = '';
+
+async function load() {
+  try {
+    const info = await fetch(API + '/info').then(r => r.text());
+    const lines = info.trim().split('\n');
+    for (const line of lines) {
+      const [key, ...rest] = line.split(':');
+      const val = rest.join(':');
+      if (key === 'node_id') document.getElementById('node-id').textContent = val;
+      if (key === 'public_key') document.getElementById('pub-key').textContent = val;
+    }
+  } catch (e) {
+    document.getElementById('node-id').textContent = 'error connecting';
+  }
+
+  try {
+    const peers = await fetch(API + '/peers').then(r => r.text());
+    const ids = peers.trim().split('\n').filter(Boolean);
+    const container = document.getElementById('peers-container');
+    if (ids.length === 0) {
+      container.innerHTML = '<p class="empty">no peers registered</p>';
+    } else {
+      container.innerHTML = '<div class="peers-list">' +
+        ids.map(id => '<span class="peer-chip">' + id.substring(0, 16) + '...</span>').join('') +
+        '</div>';
+    }
+  } catch (e) {}
+
+  try {
+    const batches = await fetch(API + '/batches').then(r => r.text());
+    const ids = batches.trim().split('\n').filter(Boolean);
+    const container = document.getElementById('batches-container');
+    if (ids.length === 0) {
+      container.innerHTML = '<p class="empty">no batches published</p>';
+    } else {
+      container.innerHTML = '';
+      for (const id of ids) {
+        const card = document.createElement('div');
+        card.className = 'card batch';
+        card.innerHTML = '<div class="batch-id">' + id + '</div><div class="batch-meta">click to view manifest</div>';
+        card.onclick = () => showManifest(id);
+        container.appendChild(card);
+      }
+    }
+  } catch (e) {}
+}
+
+async function showManifest(batchId) {
+  try {
+    const manifest = await fetch(API + '/batches/' + batchId + '/manifest').then(r => r.text());
+    const hashes = manifest.trim().split('\n').filter(Boolean);
+    const html = hashes.map(h =>
+      '<a class="hash" onclick="showRecord(\'' + h + '\')">' + h + '</a>'
+    ).join('\n');
+    document.getElementById('modal-title').textContent = 'Batch ' + batchId + ' \u2014 ' + hashes.length + ' record(s)';
+    document.getElementById('modal-content').innerHTML = html;
+    document.getElementById('modal').classList.add('active');
+  } catch (e) {
+    alert('Failed to load manifest');
+  }
+}
+
+async function showRecord(hash) {
+  try {
+    const record = await fetch(API + '/records/' + hash).then(r => {
+      if (!r.ok) throw new Error('Not found');
+      return r.text();
+    });
+    document.getElementById('modal-title').textContent = 'Record ' + hash.substring(0, 16) + '...';
+    document.getElementById('modal-content').textContent = record;
+    document.getElementById('modal').classList.add('active');
+  } catch (e) {
+    alert('Record not found: ' + hash);
+  }
+}
+
+async function lookupRecord() {
+  const hash = document.getElementById('record-input').value.trim();
+  if (hash.length !== 64) { alert('Enter a 64-character hex hash'); return; }
+  await showRecord(hash);
+}
+
+function closeModal(event) {
+  if (event.target === document.getElementById('modal')) {
+    document.getElementById('modal').classList.remove('active');
+  }
+}
+
+document.getElementById('record-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') lookupRecord();
+});
+
+load();
+</script>
+</body>
+</html>

@@ -65,7 +65,7 @@ class AuditReportTest {
     @Test
     void rejects_invalid_batch_id() {
         assertThrows(IllegalArgumentException.class, () ->
-                new AuditReport("bad", 100, 10, 9, 1, 1));
+                new AuditReport("-invalid", 100, 10, 9, 1, 1));
     }
 
     @Test

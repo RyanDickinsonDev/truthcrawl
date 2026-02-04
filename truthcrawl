@@ -1,0 +1,5 @@
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CLI_JAR="$SCRIPT_DIR/truthcrawl-cli/target/truthcrawl-cli-0.1.0-SNAPSHOT.jar"
+CORE_JAR="$SCRIPT_DIR/truthcrawl-core/target/truthcrawl-core-0.1.0-SNAPSHOT.jar"
+exec java -cp "$CLI_JAR:$CORE_JAR" io.truthcrawl.cli.Main "$@"

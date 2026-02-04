@@ -36,8 +36,8 @@ public record AuditReport(
         int disputesFiled
 ) {
     public AuditReport {
-        if (batchId == null || !batchId.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            throw new IllegalArgumentException("batch_id must be YYYY-MM-DD, got: " + batchId);
+        if (batchId == null || !batchId.matches("[a-zA-Z0-9][-a-zA-Z0-9_.]*")) {
+            throw new IllegalArgumentException("batch_id must be alphanumeric (with dashes, dots, underscores), got: " + batchId);
         }
         if (recordsTotal < 0) {
             throw new IllegalArgumentException("records_total must be >= 0");

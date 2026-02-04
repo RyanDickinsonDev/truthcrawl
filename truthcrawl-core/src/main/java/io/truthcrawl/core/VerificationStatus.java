@@ -66,8 +66,8 @@ public record VerificationStatus(
     }
 
     public VerificationStatus {
-        if (batchId == null || !batchId.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            throw new IllegalArgumentException("batch_id must be YYYY-MM-DD, got: " + batchId);
+        if (batchId == null || !batchId.matches("[a-zA-Z0-9][-a-zA-Z0-9_.]*")) {
+            throw new IllegalArgumentException("batch_id must be alphanumeric (with dashes, dots, underscores), got: " + batchId);
         }
         if (batchStatus == null) {
             throw new IllegalArgumentException("batch_status must not be null");

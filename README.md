@@ -42,6 +42,11 @@ It aims to make crawl-based claims falsifiable: who observed what, when, and wit
 - **M11: Content Comparison** -- Structural similarity analysis between archived pages, diff generation, plagiarism-relevant field extraction
 - **M12: Evidence Packaging** -- Court-ready evidence bundles with chain of custody, human-readable reports with cryptographic backing, third-party audit hooks
 
+## Getting Started
+
+See [USAGE.md](USAGE.md) for installation, Docker setup, CLI commands, and
+multi-node configuration.
+
 ## Contributing
 
 See CONTRIBUTING.md and docs/adr for architecture decisions.

@@ -69,7 +69,7 @@ class PublishBatchIT {
         Path pubKey = writeFile(tmp, "pub.key", publicKeyBase64);
 
         CliRunner.Result r = CliRunner.run("publish-batch",
-                "not-a-date", manifest.toString(), privKey.toString(), pubKey.toString(), tmp.resolve("out").toString());
+                "-invalid", manifest.toString(), privKey.toString(), pubKey.toString(), tmp.resolve("out").toString());
 
         assertEquals(2, r.exitCode());
     }

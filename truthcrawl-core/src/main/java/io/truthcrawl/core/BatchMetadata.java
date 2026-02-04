@@ -38,8 +38,8 @@ public record BatchMetadata(
     private static final String SIGNING_PREFIX = "truthcrawl-batch-v1";
 
     public BatchMetadata {
-        if (batchId == null || !batchId.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            throw new IllegalArgumentException("batch_id must be YYYY-MM-DD, got: " + batchId);
+        if (batchId == null || !batchId.matches("[a-zA-Z0-9][-a-zA-Z0-9_.]*")) {
+            throw new IllegalArgumentException("batch_id must be alphanumeric (with dashes, dots, underscores), got: " + batchId);
         }
         if (merkleRoot == null || merkleRoot.length() != 64) {
             throw new IllegalArgumentException("merkle_root must be 64-char hex");

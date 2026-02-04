@@ -98,7 +98,7 @@ class ChainLinkTest {
     @Test
     void rejects_invalid_batch_id() {
         assertThrows(IllegalArgumentException.class, () ->
-                new ChainLink("bad", ROOT, MANIFEST_HASH, 3, ChainLink.GENESIS_ROOT));
+                new ChainLink("-invalid", ROOT, MANIFEST_HASH, 3, ChainLink.GENESIS_ROOT));
     }
 
     @Test
