@@ -32,13 +32,13 @@ It aims to make crawl-based claims falsifiable: who observed what, when, and wit
 - **M4: Audit Pipeline & Batch Chain** -- Batch chaining with back-references, chain integrity verification, verification sampling, audit reports
 - **M5: Record Store & Query** -- Hash-addressed file storage, URL and node indexing, chain-wide statistics
 - **M6: Cross-Node Verification Pipeline** -- Batch export/import for offline exchange, automated verification pipeline, verification status tracking
+- **M7: Trusted Timestamping** -- Ed25519 timestamp authority, timestamp tokens for records and batches, anti-backdating guarantees
+- **M8: Content Archival** -- WARC-based page archival alongside content hashes, content retrieval by hash, storage lifecycle policies
+- **M9: Network Layer** -- HTTP API for batch discovery and record exchange, peer registration, authenticated endpoints, autonomous node mode, peer sync
+- **M10: Node Identity & Attestation** -- Operator identity binding, node registration protocol, attestation of crawl capabilities
 
 ### Planned
 
-- **M7: Trusted Timestamping** -- RFC 3161 timestamp authority integration, timestamp inclusion in observation records, anti-backdating guarantees
-- **M8: Content Archival** -- WARC-based page archival alongside content hashes, content retrieval by hash, storage lifecycle policies
-- **M9: Network Layer** -- HTTP API for batch discovery and record exchange, peer registration, authenticated endpoints
-- **M10: Node Identity & Attestation** -- Operator identity binding, node registration protocol, attestation of crawl capabilities
 - **M11: Content Comparison** -- Structural similarity analysis between archived pages, diff generation, plagiarism-relevant field extraction
 - **M12: Evidence Packaging** -- Court-ready evidence bundles with chain of custody, human-readable reports with cryptographic backing, third-party audit hooks
 
